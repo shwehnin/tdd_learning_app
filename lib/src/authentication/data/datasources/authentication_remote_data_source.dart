@@ -31,7 +31,9 @@ class AuthRemoteDataSourceImpl implements AuthenticationRemoteDataSource {
         'name': name,
         'avatar': avatar,
         'createdAt': createdAt,
-      }));
+      }), headers: {
+        'Content-Type': 'application/json'
+      });
       if(response.statusCode != 200 && response.statusCode != 201) {
         throw APIException(message: response.body, statusCode: response.statusCode);
       }
@@ -45,9 +47,18 @@ class AuthRemoteDataSourceImpl implements AuthenticationRemoteDataSource {
 
   @override
   Future<List<UserModel>> getUsers() async{
-    final response = await _client.get(Uri.https(kBaseUrl, kGetUserEndpoint));
+    try{
+      final response = await _client.get(Uri.https(kBaseUrl, kGetUserEndpoint));
+      if(response.statusCode != 200) {
+        throw APIException(message: response.body, statusCode: response.statusCode);
+      }
+      return List<DataMap>.from(jsonDecode(response.body) as List).map((userData) => UserModel.fromMap(userData)).toList();
 
-    return List<DataMap>.from(jsonDecode(response.body) as List).map((userData) => UserModel.fromMap(userData)).toList();
+    }on APIException {
+      rethrow;
+    }catch(e) {
+      throw APIException(message: e.toString(), statusCode: 505);
+    }
   }
   
 }
